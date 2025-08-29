@@ -1,0 +1,17 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Tiny Image Viewer
+Name[vi]=Trình Xem Ảnh Nhỏ Gọn
+GenericName=Image Viewer
+GenericName[vi]=Trình Xem Ảnh
+Comment=A fast and lightweight image viewer
+Comment[vi]=Trình xem ảnh nhanh và nhẹ
+Exec=imgv %f
+Icon=imgv
+Terminal=false
+StartupNotify=true
+MimeType=image/jpeg;image/jpg;image/png;image/bmp;image/tga;image/gif;
+Categories=Graphics;Photography;Viewer;
+Keywords=image;photo;picture;viewer;graphics;
+Keywords[vi]=ảnh;hình;xem;đồ họa;

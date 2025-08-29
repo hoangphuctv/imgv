@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#4A90E2" stroke="#2E5C8A" stroke-width="4"/>
+  
+  <!-- Image frame -->
+  <rect x="24" y="32" width="80" height="64" rx="4" ry="4" fill="white" stroke="#333" stroke-width="2"/>
+  
+  <!-- Image content (mountain landscape) -->
+  <polygon points="28,88 48,68 68,76 88,56 100,92" fill="#90C695" stroke="none"/>
+  <polygon points="28,92 48,72 68,80 88,60 100,92" fill="#7FB069" stroke="none"/>
+  
+  <!-- Sun -->
+  <circle cx="88" cy="48" r="8" fill="#FFD93D"/>
+  
+  <!-- Navigation arrows -->
+  <polygon points="16,64 24,58 24,70" fill="#FFD93D" stroke="#E6C200" stroke-width="1"/>
+  <polygon points="112,64 104,58 104,70" fill="#FFD93D" stroke="#E6C200" stroke-width="1"/>
+  
+  <!-- Tiny "imgv" text -->
+  <text x="64" y="118" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle" fill="white">imgv</text>
+</svg>

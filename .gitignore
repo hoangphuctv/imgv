@@ -1,0 +1,24 @@
+# Compiled binaries
+imgv
+*.o
+*.a
+*.so
+
+# Test images (optional)
+test.png
+image*.jpg
+image*.png
+
+# Build artifacts
+*.dSYM/
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*~
+*.tmp
+*.bak
