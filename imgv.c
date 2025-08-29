@@ -28,18 +28,44 @@ typedef struct {
     char current_dir[1024];
 } ImageViewer;
 
+// Always center on primary display for consistent behavior
+int get_current_display() {
+    // For simplicity and consistency, always use primary display
+    // This avoids mouse position detection issues across different terminals
+    return 0; // Primary display
+}
+
 // Hàm resize và center cửa sổ
 int resize_and_center_window(ImageViewer *viewer, const char *title) {
     if (!viewer->window) {
-        // Tạo cửa sổ mới và căn giữa
-        viewer->window = SDL_CreateWindow(title, 
-                                        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        // Tìm màn hình hiện tại (luôn dùng primary display)
+        int current_display = get_current_display();
+        
+        // Lấy thông tin màn hình hiện tại
+        SDL_Rect display_bounds;
+        if (SDL_GetDisplayBounds(current_display, &display_bounds) != 0) {
+            // Fallback to primary display
+            SDL_GetDisplayBounds(0, &display_bounds);
+        }
+        
+        // Tính toán vị trí center của màn hình hiện tại
+        int pos_x = display_bounds.x + (display_bounds.w - viewer->win_width) / 2;
+        int pos_y = display_bounds.y + (display_bounds.h - viewer->win_height) / 2;
+        
+        // Tạo cửa sổ tại vị trí đã tính toán với consistent flags
+        viewer->window = SDL_CreateWindow(title, pos_x, pos_y,
                                         viewer->win_width, viewer->win_height, 
-                                        SDL_WINDOW_SHOWN);
+                                        SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI);
         if (!viewer->window) {
             printf("Không thể tạo cửa sổ: %s\n", SDL_GetError());
             return 0;
         }
+        
+        // Đảm bảo window được positioned đúng trong mọi trường hợp
+        SDL_SetWindowPosition(viewer->window, pos_x, pos_y);
+        
+        // Force window to be non-resizable để consistent decoration
+        SDL_SetWindowResizable(viewer->window, SDL_FALSE);
         
         viewer->renderer = SDL_CreateRenderer(viewer->window, -1, SDL_RENDERER_ACCELERATED);
         if (!viewer->renderer) {
@@ -53,6 +79,9 @@ int resize_and_center_window(ImageViewer *viewer, const char *title) {
     // Cập nhật tiêu đề và kích thước cửa sổ
     SDL_SetWindowTitle(viewer->window, title);
     SDL_SetWindowSize(viewer->window, viewer->win_width, viewer->win_height);
+    
+    // Đảm bảo consistent window properties
+    SDL_SetWindowResizable(viewer->window, SDL_FALSE);
     
     SDL_PumpEvents();
     
@@ -225,6 +254,30 @@ int main(int argc, char *argv[]) {
         printf("Sử dụng: %s <đường_dẫn_ảnh>\n", argv[0]);
         return 1;
     }
+    
+    // Detach from terminal - fork to background
+    pid_t pid = fork();
+    if (pid < 0) {
+        perror("Fork failed");
+        return 1;
+    }
+    
+    if (pid > 0) {
+        // Parent process - exit immediately to return control to terminal
+        return 0;
+    }
+    
+    // Child process continues - detach from terminal session
+    if (setsid() < 0) {
+        perror("setsid failed");
+        return 1;
+    }
+    
+    // Force consistent window decorations
+    setenv("SDL_VIDEO_WAYLAND_WMCLASS", "imgv", 1);
+    setenv("SDL_VIDEO_X11_WMCLASS", "imgv", 1);
+    // Disable problematic libdecor to get consistent borders
+    setenv("SDL_VIDEO_WAYLAND_PREFER_LIBDECOR", "0", 1);
     
     // Khởi tạo SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
