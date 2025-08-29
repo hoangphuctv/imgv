@@ -9,7 +9,8 @@ Một trình xem ảnh siêu nhỏ gọn và nhanh chóng cho Linux.
 - **📐 Auto-resize thông minh**: Tự động điều chỉnh theo kích thước ảnh
 - **🖼️ Hỗ trợ đa định dạng**: JPG, PNG, BMP, TGA, GIF
 - **🌐 Unicode support**: Hiển thị tên file tiếng Việt
-- **🎯 Tự động căn giữa**: Window luôn ở vị trí thuận tiện
+- **🎯 Smart centering**: Tự động căn giữa trên màn hình hiện tại
+- **🖥️ Multi-monitor support**: Center đúng màn hình có mouse cursor
 
 ## �️ Cài đặt
 
@@ -96,6 +97,8 @@ imgv/
 
 ## 🔧 Tính năng kỹ thuật
 
+- **Smart window positioning**: Detect màn hình hiện tại qua mouse cursor
+- **Multi-monitor aware**: Center chính xác trên setup đa màn hình
 - **Single window architecture**: Hiệu quả và ổn định
 - **Smart memory management**: Tự động giải phóng bộ nhớ
 - **Cross-platform compatibility**: Hoạt động trên mọi Linux distro

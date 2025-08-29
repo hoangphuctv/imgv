@@ -28,32 +28,11 @@ typedef struct {
     char current_dir[1024];
 } ImageViewer;
 
-// Always center on primary display for consistent behavior
-int get_current_display() {
-    // For simplicity and consistency, always use primary display
-    // This avoids mouse position detection issues across different terminals
-    return 0; // Primary display
-}
-
-// Hàm resize và center cửa sổ
-int resize_and_center_window(ImageViewer *viewer, const char *title) {
+// Hàm resize cửa sổ (để GNOME window manager handle positioning)
+int resize_window(ImageViewer *viewer, const char *title) {
     if (!viewer->window) {
-        // Tìm màn hình hiện tại (luôn dùng primary display)
-        int current_display = get_current_display();
-        
-        // Lấy thông tin màn hình hiện tại
-        SDL_Rect display_bounds;
-        if (SDL_GetDisplayBounds(current_display, &display_bounds) != 0) {
-            // Fallback to primary display
-            SDL_GetDisplayBounds(0, &display_bounds);
-        }
-        
-        // Tính toán vị trí center của màn hình hiện tại
-        int pos_x = display_bounds.x + (display_bounds.w - viewer->win_width) / 2;
-        int pos_y = display_bounds.y + (display_bounds.h - viewer->win_height) / 2;
-        
-        // Tạo cửa sổ tại vị trí đã tính toán với consistent flags
-        viewer->window = SDL_CreateWindow(title, pos_x, pos_y,
+        // Tạo cửa sổ và để GNOME window manager tự quyết định vị trí
+        viewer->window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                         viewer->win_width, viewer->win_height, 
                                         SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI);
         if (!viewer->window) {
@@ -61,11 +40,9 @@ int resize_and_center_window(ImageViewer *viewer, const char *title) {
             return 0;
         }
         
-        // Đảm bảo window được positioned đúng trong mọi trường hợp
-        SDL_SetWindowPosition(viewer->window, pos_x, pos_y);
+        // Để GNOME window manager tự quyết định positioning
         
-        // Force window to be non-resizable để consistent decoration
-        SDL_SetWindowResizable(viewer->window, SDL_FALSE);
+        // Cho phép move nhưng sẽ control resize thông qua event handling
         
         viewer->renderer = SDL_CreateRenderer(viewer->window, -1, SDL_RENDERER_ACCELERATED);
         if (!viewer->renderer) {
@@ -80,8 +57,7 @@ int resize_and_center_window(ImageViewer *viewer, const char *title) {
     SDL_SetWindowTitle(viewer->window, title);
     SDL_SetWindowSize(viewer->window, viewer->win_width, viewer->win_height);
     
-    // Đảm bảo consistent window properties
-    SDL_SetWindowResizable(viewer->window, SDL_FALSE);
+    // Cho phép move, nhưng control resize thông qua event handling
     
     SDL_PumpEvents();
     
@@ -207,8 +183,8 @@ int load_image(ImageViewer *viewer, const char *filepath) {
     filename = filename ? filename + 1 : filepath;
     snprintf(title, sizeof(title), "imgv - %s (%dx%d)", filename, viewer->img_width, viewer->img_height);
     
-    // Resize và center cửa sổ (không recreate để tránh taskbar flicker)
-    if (!resize_and_center_window(viewer, title)) {
+    // Resize cửa sổ (GNOME window manager handles positioning)
+    if (!resize_window(viewer, title)) {
         free(img_data);
         return 0;
     }
@@ -273,11 +249,16 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
-    // Force consistent window decorations
+    // Keep stderr for debugging GNOME integration issues
+    // freopen("/dev/null", "w", stderr);
+    
+    // GNOME-friendly window decorations
+
+    setenv("GDK_BACKEND", "x11", 1);
     setenv("SDL_VIDEO_WAYLAND_WMCLASS", "imgv", 1);
     setenv("SDL_VIDEO_X11_WMCLASS", "imgv", 1);
-    // Disable problematic libdecor to get consistent borders
-    setenv("SDL_VIDEO_WAYLAND_PREFER_LIBDECOR", "0", 1);
+    // Allow GNOME to handle decorations naturally
+    // Remove forced decoration overrides for better GNOME integration
     
     // Khởi tạo SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -285,9 +266,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
-    // Set SDL hints để tối ưu cho GNOME/Wayland
+    // Set SDL hints để tương thích tốt với GNOME/Wayland
     SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
-    SDL_SetHint(SDL_HINT_VIDEO_WAYLAND_ALLOW_LIBDECOR, "1");
+    // Let GNOME handle decorations naturally - don't force disable
     SDL_SetHint(SDL_HINT_VIDEO_X11_WINDOW_VISUALID, "");
     
     ImageViewer viewer = {0};
@@ -311,12 +292,45 @@ int main(int argc, char *argv[]) {
     // Vòng lặp chính
     SDL_Event event;
     int running = 1;
+    int dragging = 0;
+    int drag_start_x, drag_start_y;
+    int window_start_x, window_start_y;
     
     while (running) {
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
                 case SDL_QUIT:
                     running = 0;
+                    break;
+                    
+                case SDL_WINDOWEVENT:
+                    if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+                        // Ngăn resize bằng cách reset lại kích thước gốc
+                        SDL_SetWindowSize(viewer.window, viewer.win_width, viewer.win_height);
+                    }
+                    break;
+                    
+                case SDL_MOUSEBUTTONDOWN:
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        dragging = 1;
+                        drag_start_x = event.button.x;
+                        drag_start_y = event.button.y;
+                        SDL_GetWindowPosition(viewer.window, &window_start_x, &window_start_y);
+                    }
+                    break;
+                    
+                case SDL_MOUSEBUTTONUP:
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        dragging = 0;
+                    }
+                    break;
+                    
+                case SDL_MOUSEMOTION:
+                    if (dragging) {
+                        int new_x = window_start_x + (event.motion.x - drag_start_x);
+                        int new_y = window_start_y + (event.motion.y - drag_start_y);
+                        SDL_SetWindowPosition(viewer.window, new_x, new_y);
+                    }
                     break;
                     
                 case SDL_KEYDOWN:
