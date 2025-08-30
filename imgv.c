@@ -25,7 +25,7 @@ typedef struct {
     int img_width, img_height;
     int win_width, win_height;
     ImageList image_list;
-    char current_dir[1024];
+    char current_dir[4096];
 } ImageViewer;
 
 // Hàm resize cửa sổ (để GNOME window manager handle positioning)
@@ -114,9 +114,12 @@ void load_image_list(ImageViewer *viewer, const char *filepath) {
             viewer->image_list.files[viewer->image_list.count] = strdup(entry->d_name);
             
             // Kiểm tra file hiện tại
-            char full_path[1024];
-            snprintf(full_path, sizeof(full_path), "%s/%s", viewer->current_dir, entry->d_name);
-            if (strcmp(full_path, filepath) == 0) {
+
+            char full_path[4096];
+            int n = snprintf(full_path, sizeof(full_path), "%s/%s", viewer->current_dir, entry->d_name);
+            if (n < 0 || (size_t)n >= sizeof(full_path)) {
+                fprintf(stderr, "Warning: file path too long, skipping: %s/%s\n", viewer->current_dir, entry->d_name);
+            } else if (strcmp(full_path, filepath) == 0) {
                 viewer->image_list.current = viewer->image_list.count;
             }
             
@@ -178,7 +181,7 @@ int load_image(ImageViewer *viewer, const char *filepath) {
     }
     
     // Tạo title với tên file
-    char title[1024];
+    char title[4096];
     const char *filename = strrchr(filepath, '/');
     filename = filename ? filename + 1 : filepath;
     snprintf(title, sizeof(title), "imgv - %s (%dx%d)", filename, viewer->img_width, viewer->img_height);
@@ -205,10 +208,13 @@ void next_image(ImageViewer *viewer) {
     
     viewer->image_list.current = (viewer->image_list.current + 1) % viewer->image_list.count;
     
-    char filepath[1024];
-    snprintf(filepath, sizeof(filepath), "%s/%s", viewer->current_dir, 
+    char filepath[4096];
+    int n = snprintf(filepath, sizeof(filepath), "%s/%s", viewer->current_dir, 
              viewer->image_list.files[viewer->image_list.current]);
-    
+    if (n < 0 || (size_t)n >= sizeof(filepath)) {
+        fprintf(stderr, "Warning: file path too long, cannot load next image.\n");
+        return;
+    }
     load_image(viewer, filepath);
 }
 
@@ -218,10 +224,13 @@ void prev_image(ImageViewer *viewer) {
     
     viewer->image_list.current = (viewer->image_list.current - 1 + viewer->image_list.count) % viewer->image_list.count;
     
-    char filepath[1024];
-    snprintf(filepath, sizeof(filepath), "%s/%s", viewer->current_dir, 
+    char filepath[4096];
+    int n = snprintf(filepath, sizeof(filepath), "%s/%s", viewer->current_dir, 
              viewer->image_list.files[viewer->image_list.current]);
-    
+    if (n < 0 || n >= (int)sizeof(filepath)) {
+        fprintf(stderr, "Warning: file path too long, cannot load previous image.\n");
+        return;
+    }
     load_image(viewer, filepath);
 }
 
@@ -290,8 +299,15 @@ int main(int argc, char *argv[]) {
             SDL_Quit();
             return 1;
         }
-        char filepath[1024];
-        snprintf(filepath, sizeof(filepath), "%s/%s", viewer.current_dir, viewer.image_list.files[0]);
+        char filepath[4096];
+        int n = snprintf(filepath, sizeof(filepath), "%s/%s", viewer.current_dir, viewer.image_list.files[0]);
+        if (n < 0 || n >= (int)sizeof(filepath)) {
+            fprintf(stderr, "Warning: file path too long, cannot load first image.\n");
+            if (viewer.renderer) SDL_DestroyRenderer(viewer.renderer);
+            if (viewer.window) SDL_DestroyWindow(viewer.window);
+            SDL_Quit();
+            return 1;
+        }
         viewer.image_list.current = 0;
         if (!load_image(&viewer, filepath)) {
             printf("Không thể tải ảnh: %s\n", filepath);
