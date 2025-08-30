@@ -280,15 +280,36 @@ int main(int argc, char *argv[]) {
     // Tải danh sách ảnh trong thư mục
     load_image_list(&viewer, argv[1]);
     
-    // Tải ảnh đầu tiên (sẽ tạo cửa sổ)
-    if (!load_image(&viewer, argv[1])) {
-        printf("Không thể tải ảnh: %s\n", argv[1]);
-        if (viewer.renderer) SDL_DestroyRenderer(viewer.renderer);
-        if (viewer.window) SDL_DestroyWindow(viewer.window);
-        SDL_Quit();
-        return 1;
+    struct stat st;
+    if (stat(argv[1], &st) == 0 && S_ISDIR(st.st_mode)) {
+        // Nếu là thư mục, lấy ảnh đầu tiên trong viewer->image_list
+        if (viewer.image_list.count == 0) {
+            printf("Không tìm thấy ảnh trong thư mục: %s\n", argv[1]);
+            if (viewer.renderer) SDL_DestroyRenderer(viewer.renderer);
+            if (viewer.window) SDL_DestroyWindow(viewer.window);
+            SDL_Quit();
+            return 1;
+        }
+        char filepath[1024];
+        snprintf(filepath, sizeof(filepath), "%s/%s", viewer.current_dir, viewer.image_list.files[0]);
+        viewer.image_list.current = 0;
+        if (!load_image(&viewer, filepath)) {
+            printf("Không thể tải ảnh: %s\n", filepath);
+            if (viewer.renderer) SDL_DestroyRenderer(viewer.renderer);
+            if (viewer.window) SDL_DestroyWindow(viewer.window);
+            SDL_Quit();
+            return 1;
+        }
+    } else {
+        // Nếu là file ảnh, tải ảnh đầu tiên (sẽ tạo cửa sổ)
+        if (!load_image(&viewer, argv[1])) {
+            printf("Không thể tải ảnh: %s\n", argv[1]);
+            if (viewer.renderer) SDL_DestroyRenderer(viewer.renderer);
+            if (viewer.window) SDL_DestroyWindow(viewer.window);
+            SDL_Quit();
+            return 1;
+        }
     }
-    
     // Vòng lặp chính
     SDL_Event event;
     int running = 1;
@@ -364,7 +385,7 @@ int main(int argc, char *argv[]) {
         
         SDL_RenderPresent(viewer.renderer);
         
-        SDL_Delay(16); // ~60 FPS
+        SDL_Delay(40); // ~25 FPS
     }
     
     // Dọn dẹp
