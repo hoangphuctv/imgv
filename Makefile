@@ -1,9 +1,9 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -O2
-LIBS = -lSDL2 -lm
+
+QT_CFLAGS = $(shell pkg-config --cflags Qt5Widgets)
+QT_LIBS = $(shell pkg-config --libs Qt5Widgets)
 
 TARGET = imgv
-SOURCES = imgv.c
+SOURCES = imgv.cpp
 
 # Installation paths
 PREFIX = /usr/local
@@ -12,72 +12,51 @@ DATADIR = $(PREFIX)/share
 ICONDIR = $(DATADIR)/icons/hicolor
 APPLICATIONSDIR = $(DATADIR)/applications
 
+
 .PHONY: all clean install uninstall check-deps help
+
 
 all: $(TARGET)
 
-$(TARGET): $(SOURCES) stb_image.h stb_image_resize2.h
-	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) $(LIBS)
+$(TARGET): $(SOURCES)
+	g++ $(SOURCES) -o $(TARGET) $(QT_CFLAGS) $(QT_LIBS)
+
+
+
 
 clean:
 	rm -f $(TARGET)
+
+
 
 install: $(TARGET)
 	@echo "Installing imgv..."
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 755 $(TARGET) $(DESTDIR)$(BINDIR)/
-	
-	@echo "Installing desktop file..."
-	install -d $(DESTDIR)$(APPLICATIONSDIR)
-	install -m 644 imgv.desktop $(DESTDIR)$(APPLICATIONSDIR)/
-	
-	@echo "Installing icon..."
-	install -d $(DESTDIR)$(ICONDIR)/scalable/apps
-	install -m 644 imgv.svg $(DESTDIR)$(ICONDIR)/scalable/apps/
-	
-	@echo "Updating desktop database..."
-	-update-desktop-database $(DESTDIR)$(APPLICATIONSDIR) 2>/dev/null
-	-gtk-update-icon-cache $(DESTDIR)$(ICONDIR) 2>/dev/null
-	
 	@echo "✓ Installation complete!"
+
 
 uninstall:
 	@echo "Uninstalling imgv..."
 	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
-	rm -f $(DESTDIR)$(APPLICATIONSDIR)/imgv.desktop
-	rm -f $(DESTDIR)$(ICONDIR)/scalable/apps/imgv.svg
-	
-	@echo "Updating desktop database..."
-	-update-desktop-database $(DESTDIR)$(APPLICATIONSDIR) 2>/dev/null
-	-gtk-update-icon-cache $(DESTDIR)$(ICONDIR) 2>/dev/null
-	
 	@echo "✓ Uninstallation complete!"
 
-# Kiểm tra dependencies
-check-deps:
-	@echo "Kiểm tra SDL2..."
-	@pkg-config --exists sdl2 && echo "✓ SDL2 đã cài đặt" || echo "✗ SDL2 chưa cài đặt. Chạy: sudo apt install libsdl2-dev"
 
-help:
-	@echo "Makefile cho A Tiny Image Viewer (imgv)"
+check-deps:
+	@echo "Checking for Qt5Widgets..."
+	@pkg-config --exists Qt5Widgets && echo "✓ Qt5Widgets installed" || echo "✗ Qt5Widgets not installed. Run: sudo dnf install qt5-qtbase-devel"
+
+
+	@echo "Makefile for imgv (Qt version)"
 	@echo ""
-	@echo "Các lệnh có sẵn:"
-	@echo "  make          - Biên dịch chương trình"
-	@echo "  make clean    - Xóa file thực thi"
-	@echo "  make install  - Cài đặt system-wide (cần sudo)"
-	@echo "  make uninstall- Gỡ cài đặt system-wide (cần sudo)"
-	@echo "  make check-deps - Kiểm tra dependencies"
-	@echo "  make help     - Hiển thị help này"
+	@echo "Available commands:"
+	@echo "  make          - Build the program (Qt)"
+	@echo "  make clean    - Remove executable"
+	@echo "  make install  - Install system-wide (requires sudo)"
+	@echo "  make uninstall- Uninstall system-wide (requires sudo)"
+	@echo "  make check-deps - Check Qt dependencies"
+	@echo "  make help     - Show this help"
 	@echo ""
-	@echo "Installation bao gồm:"
-	@echo "  - Binary: $(BINDIR)/imgv"
-	@echo "  - Desktop file: $(APPLICATIONSDIR)/imgv.desktop"
-	@echo "  - Icon: $(ICONDIR)/scalable/apps/imgv.svg"
-	@echo ""
-	@echo "Dependencies cần thiết:"
-	@echo "  - SDL2 development libraries"
-	@echo "  - GCC compiler"
-	@echo ""
-	@echo "Cài đặt dependencies trên Ubuntu/Debian:"
-	@echo "  sudo apt update"
-	@echo "  sudo apt install build-essential libsdl2-dev"
+	@echo "Required dependencies: Qt5 development libraries, GCC compiler"
+	@echo "Install dependencies on Fedora: sudo dnf install gcc-c++ qt5-qtbase-devel"
+	@echo "Install dependencies on Ubuntu/Debian: sudo apt install build-essential qtbase5-dev"
