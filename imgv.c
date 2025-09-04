@@ -234,6 +234,64 @@ void prev_image(ImageViewer *viewer) {
     load_image(viewer, filepath);
 }
 
+// Xóa file ảnh hiện tại
+void remove_current_image(ImageViewer *viewer) {
+    if (viewer->image_list.count == 0) return;
+    
+    // Lấy đường dẫn file hiện tại
+    char filepath[4096];
+    int n = snprintf(filepath, sizeof(filepath), "%s/%s", viewer->current_dir, 
+             viewer->image_list.files[viewer->image_list.current]);
+    if (n < 0 || (size_t)n >= sizeof(filepath)) {
+        fprintf(stderr, "Warning: file path too long, cannot remove file.\n");
+        return;
+    }
+    
+    // Xóa file
+    if (unlink(filepath) != 0) {
+        perror("Không thể xóa file");
+        return;
+    }
+    
+    printf("Đã xóa file: %s\n", filepath);
+    
+    // Lưu current index
+    int current_index = viewer->image_list.current;
+    
+    // Giải phóng tên file đã xóa
+    free(viewer->image_list.files[current_index]);
+    
+    // Dịch chuyển các file phía sau lên trước
+    for (int i = current_index; i < viewer->image_list.count - 1; i++) {
+        viewer->image_list.files[i] = viewer->image_list.files[i + 1];
+    }
+    
+    // Giảm số lượng file
+    viewer->image_list.count--;
+    
+    // Nếu không còn file nào, thoát
+    if (viewer->image_list.count == 0) {
+        printf("Không còn file ảnh nào trong thư mục.\n");
+        exit(0);
+    }
+    
+    // Điều chỉnh current index
+    if (current_index >= viewer->image_list.count) {
+        viewer->image_list.current = 0; // Quay về file đầu tiên
+    } else {
+        viewer->image_list.current = current_index; // Giữ nguyên vị trí
+    }
+    
+    // Load ảnh tiếp theo
+    n = snprintf(filepath, sizeof(filepath), "%s/%s", viewer->current_dir, 
+         viewer->image_list.files[viewer->image_list.current]);
+    if (n < 0 || (size_t)n >= sizeof(filepath)) {
+        fprintf(stderr, "Warning: file path too long, cannot load next image.\n");
+        return;
+    }
+    load_image(viewer, filepath);
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         printf("Sử dụng: %s <đường_dẫn_ảnh>\n", argv[0]);
@@ -385,6 +443,10 @@ int main(int argc, char *argv[]) {
                         case SDLK_LEFT:
                         case SDLK_BACKSPACE:
                             prev_image(&viewer);
+                            break;
+                            
+                        case SDLK_DELETE:
+                            remove_current_image(&viewer);
                             break;
                     }
                     break;

@@ -112,10 +112,9 @@ Một trình xem ảnh siêu nhỏ gọn và nhanh chóng, được tối ưu h�
 
 ## ✨ Tính năng
 
-- **🎯 Perfect Window Centering**: Luôn center chính xác trên mọi desktop environment
-- **� Zero Taskbar Flicker**: Hoàn toàn không có hiện tượng "cà giật cà giật" trên GNOME
 - **⚡ Siêu nhanh**: Tải và hiển thị ảnh ngay lập tức
 - **🔄 Navigation mượt mà**: Phím mũi tên để chuyển ảnh
+- **🗑️ Xóa ảnh nhanh**: Nhấn phím DEL để xóa ảnh đang xem
 - **📐 Auto-resize thông minh**: Tự động điều chỉnh theo kích thước ảnh
 - **🖼️ Hỗ trợ đa định dạng**: JPG, PNG, BMP, TGA, GIF
 - **🌐 Unicode support**: Hiển thị tên file tiếng Việt hoàn hảo
